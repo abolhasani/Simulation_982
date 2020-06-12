@@ -18,6 +18,8 @@ import math
 import pandas as pd
 ###import numpy as np
 from operator import itemgetter
+
+
 # an array for holding the information of all customers attended
 customers = []
 # defining statistics which should be updated during the simulation
@@ -111,3 +113,24 @@ def num_of_car_passangers(R):
         return 3
     else :
         return 4
+
+
+
+
+# should be developed by Mohammad Sadegh
+def exponential_random_variate(mean):
+   #Based on Slide 8.1
+   rand = random.random()
+   exp = math.log(rand)
+   erv = -1*mean*exp
+   return erv
+
+
+# should be developed by Mohammad Sadegh
+def random_uniform_between(min, max):
+    #Based on Slide 8.1
+    rand = random.random()
+    range = max - min
+    uni = min + range*rand
+    return uni
+
