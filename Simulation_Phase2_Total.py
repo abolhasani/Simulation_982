@@ -269,3 +269,42 @@ def RF(future_event_list, state, clock , total_time_customer_in_receiving_queue 
     #updating the cumulative statistics
     total_time_customer_in_receiving_queue += (clock - customers[customer_index].entering_time_to_receiving_section)
     total_num_of_customers_received_food += 1
+        
+
+# Serving Entrance
+# should be developed by Mohammad Sadegh
+def SE(future_event_list, state, clock, customers, customer_index, serving_food_queue_length):
+    if state["Serving_Chairs_Idle"] == 0:
+        state["serving_queue"] += 1
+        #serving_food_queue_length.append(state["serving_queue"])
+    else:
+        state["Serving_Chairs_Idle"] -= 1
+        # random variates for determining time of ordering process and paying the money
+        serving = triangular_random_variate(10, 20, 30)
+        # this should be completed when the OF event developed
+        FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+                  ["SF", clock + serving, customer_index])
+    # updating the cumulative statistics
+    # there is no need to update the cumulative statistics here
+
+
+# Serving Finish
+# should be developed by Mohammad Sadegh
+def SF(future_event_list, state, clock, customers, customer_index):
+    exiting = exponential_random_variate(1)
+    FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+              ["E", clock + exiting, customers[customer_index]])
+    if state["serving_queue"] == 0:
+        state["Serving_Chairs_Idle"] += 1
+    else:
+        serving_food_queue_length.append(state["serving_queue"])
+        state["serving_queue"] -= 1
+        # random variates for determining time of ordering process and paying the money
+        serving = triangular_random_variate(10, 20, 30)
+        # this should be completed when the OF event developed
+        FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+                  ["SF", clock + serving, customer_index])
+    # updating the cumulative statistics
+    # there is no need to update the cumulative statistics here
+          
+          
