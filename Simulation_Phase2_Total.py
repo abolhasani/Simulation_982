@@ -297,7 +297,6 @@ def SF(future_event_list, state, clock, customers, customer_index):
     if state["serving_queue"] == 0:
         state["Serving_Chairs_Idle"] += 1
     else:
-        serving_food_queue_length.append(state["serving_queue"])
         state["serving_queue"] -= 1
         # random variates for determining time of ordering process and paying the money
         serving = triangular_random_variate(10, 20, 30)
