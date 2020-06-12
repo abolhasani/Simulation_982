@@ -179,3 +179,77 @@ def CCE(future_event_list, state, clock ,customers):
             FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["OF" , clock + ordering + paying_money , customer_index])
         #updating the cumulative statistics
         #there is no need to update the cumulative statistics here
+          
+ # Bus Entrance
+# should be developed by Mohammad Sadegh
+def BE(future_event_list, state, clock, total_ordering_server_busy_time):
+    p = int(poisson_random_variate(30))
+    #clock = (random_uniform_between(11,13) - 11 )* 60
+    for i in range(p):
+        customer_index = len(customers)
+        FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+                  ["OE", clock, customer_index])
+        # instantiating a new customer and appending it to the list of customers
+        customer = Customer(customer_index, clock)
+        customers.append(customer)
+        if state["Ordering_Server_Idle"] == 0:
+            state["Ordering_queue"] += 1
+        else:
+            state["Ordering_Server_Idle"] -= 1
+            # random variates for determining time of ordering process and paying the money
+            ordering = triangular_random_variate(1, 2, 4)
+            paying_money = triangular_random_variate(1, 2, 3)
+            # this should be completed when the OF event developed
+            FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+                      ["OF", clock + ordering + paying_money, customer_index])
+            total_ordering_server_busy_time +=  ordering + paying_money
+        # updating the cumulative statistics
+        # there is no need to update the cumulative statistics here
+
+
+# Ordering Finish
+# should be developed by Mohammad Sadegh
+def OF(future_event_list, state, clock, customers, customer_index, ordering_servers_rest_time, total_ordering_server_busy_time):
+    if state["Ordering_Server_Rest_blocked"] == 1:
+        state["Ordering_Server_Rest_blocked"] = 0
+        state['Ordering_Server_Resting'] += 1
+        ordering_servers_rest_time +=  10
+        FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+                  ["OSRF", clock + 10, customers[customer_index]])
+    going_to_receive = exponential_random_variate(0.5)
+    FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+              ["RE", clock + going_to_receive, customers[customer_index]])
+    if state["Ordering_queue"] == 0:
+        state["Ordering_server_idle"] += 1
+    else:
+        state["Ordering_queue"] -= 1
+        # random variates for determining time of ordering process and paying the money
+        ordering = triangular_random_variate(1, 2, 4)
+        paying_money = triangular_random_variate(1, 2, 3)
+        # this should be completed when the OF event developed
+        FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+                  ["OF", clock + ordering + paying_money, customers[customer_index]])
+        total_ordering_server_busy_time += ordering + paying_money
+    # updating the cumulative statistics
+    # there is no need to update the cumulative statistics here
+
+
+# Receiving Entrance
+# should be developed by Mohammad Sadegh
+def RE(future_event_list, state, clock, customers, customer_index, total_time_customer_in_receiving_queue, total_receiving_server_busy_time):
+    if state["Receiving_Server_Idle"] == 0:
+        state["Receiving_queue"] += 1
+        #total_time_customer_in_receiving_queue += clock - customers[customer_index].entering_receiving_section_time
+    else:
+        state["Receiving_Server_Idle"] -= 1
+        # random variates for determining time of ordering process and paying the money
+        receiving = random_uniform_between(0.5,2)
+        # this should be completed when the OF event developed
+        FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
+                  ["RF", clock + receiving, customers[customer_index]])
+        customers[customer_index].entering_receiving_section_time = clock
+        total_receiving_server_busy_time += receiving
+    # updating the cumulative statistics
+    # there is no need to update the cumulative statistics here
+
+
