@@ -134,3 +134,48 @@ def random_uniform_between(min, max):
     uni = min + range*rand
     return uni
 
+# Pedestrian Customer Entrance
+# should be developed by Abolfazl
+def PCE(future_event_list, state, clock , customers):
+    customer_index = len(customers)
+    #appending the next PCE event to the FEL
+    FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["PCE" , clock + exponential_random_variate(3) , customer_index])
+    #instantiating a new customer and appendign it to the list of customers
+    customer = Customer(customer_index, clock)
+    customers.append(customer)
+
+    if state["Ordering_Server_Idle"] == 0:
+        state["Ordering_queue"] += 1
+    else :
+        state["Ordering_Server_Idle"] -= 1
+        #random variates for determining time of ordering process and paying the money
+        ordering = triangular_random_variate(1, 2, 4 , np.random.random())
+        paying_money = triangular_random_variate(1, 2, 3)
+        #this should be completed when the OF event developed
+        FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["OF" , clock + ordering + paying_money , customer_index])
+    #updating the cumulative statistics
+    #there is no need to update the cumulative statistics here
+
+# Car Customer Enterance
+# should be developed by Abolfazl
+def CCE(future_event_list, state, clock ,customers):
+    #appending the next CCE event to the FEL
+    FEL_maker(future_event_list, ["Event type" , "Event time"], ["CCE" , clock + exponential_random_variate(5)])
+    #generating random variate for number of car passangers
+    G = num_of_car_passangers()
+    for i in range(G):
+        customer_index = len(customers)
+        #instantiating a new customer and appendign it to the list of customers
+        customer = Customer(customer_index, clock)
+        customers.append(customer)
+        if state["Ordering_Server_Idle"] == 0:
+            state["Ordering_queue"] += 1
+        else :
+            state["Ordering_Server_Idle"] -= 1
+            #random variates for determining time of ordering process and paying the money
+            ordering = triangular_random_variate(1, 2, 4)
+            paying_money = triangular_random_variate(1, 2, 3)
+            #this should be completed when the OF event developed
+            FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["OF" , clock + ordering + paying_money , customer_index])
+        #updating the cumulative statistics
+        #there is no need to update the cumulative statistics here
