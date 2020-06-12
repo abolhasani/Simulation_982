@@ -205,7 +205,7 @@ def BE(future_event_list, state, clock, total_ordering_server_busy_time):
                       ["OF", clock + ordering + paying_money, customer_index])
             total_ordering_server_busy_time +=  ordering + paying_money
         # updating the cumulative statistics
-        # there is no need to update the cumulative statistics here
+        total_ordering_server_busy_time +=  ordering + paying_money
 
 
 # Ordering Finish
@@ -230,9 +230,9 @@ def OF(future_event_list, state, clock, customers, customer_index, ordering_serv
         # this should be completed when the OF event developed
         FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
                   ["OF", clock + ordering + paying_money, customer_index])
-        total_ordering_server_busy_time += ordering + paying_money
+        
     # updating the cumulative statistics
-    # there is no need to update the cumulative statistics here
+    total_ordering_server_busy_time += ordering + paying_money
 
 
 # Receiving Entrance
@@ -249,7 +249,23 @@ def RE(future_event_list, state, clock, customers, customer_index, total_time_cu
         FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],
                   ["RF", clock + receiving, customer_index])
         customers[customer_index].entering_receiving_section_time = clock
-        total_receiving_server_busy_time += receiving
+        
     # updating the cumulative statistics
-    # there is no need to update the cumulative statistics here
+    total_receiving_server_busy_time += receiving
 
+# Receiving Finish
+# should be developed by Abolfazl
+def RF(future_event_list, state, clock , total_time_customer_in_receiving_queue , total_num_of_customers_received_food , customers , customer_index):
+    #this part should be completed after abol's part
+    FEL_maker(future_event_list,["Event type" , "Event time"], ["SE" , clock + exponential_random_variate(0.5)])
+    if state['Receiving_Server_Rest_blocked'] == 1 :
+        state['Receiving_Server_Rest_blocked'] = 0
+        state['Receiving_Server_Resting'] += 1
+    if  state['Receiving_queue'] == 0 :
+        state['Receiving_Server_Idle'] += 1
+        state['Receiving_queue'] -= 1
+        FEL_maker(future_event_list,["Event type" , "Event time" , "Customer index"], ["RF" , clock + random_uniform_between(0.5,2) , customer_index+1])
+
+    #updating the cumulative statistics
+    total_time_customer_in_receiving_queue += (clock - customers[customer_index].entering_time_to_receiving_section)
+    total_num_of_customers_received_food += 1
