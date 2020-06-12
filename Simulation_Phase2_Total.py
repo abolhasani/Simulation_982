@@ -308,3 +308,24 @@ def SF(future_event_list, state, clock, customers, customer_index):
     # there is no need to update the cumulative statistics here
           
           
+
+# Exit
+# should be developed by Abolfazl
+def E(future_event_list, state, clock):
+    return 0
+
+
+
+# Ordering Server Rest Start
+# should be developed by Mohammad Sadegh
+def OSRS(future_event_list, state, clock, ordering_servers_rest_time):
+    if state["Ordering_Server_Idle"] == 0:
+        state["Ordering_Server_Rest_blocked"] += 1
+
+    else:
+        state["Ordering_Server_Resting"] += 1
+        FEL_maker(future_event_list, ["Event type", "Event time"],
+                  ["OSRF", clock + 10 ])
+        #ordering_servers_rest_time += 10
+
+
