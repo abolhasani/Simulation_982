@@ -327,4 +327,142 @@ def OSRS(future_event_list, state, clock, ordering_servers_rest_time):
                   ["OSRF", clock + 10 ])
         #ordering_servers_rest_time += 10
 
+# Ordering Server Rest Finish
+# should be developed by Abolfazl
+def OSRF(future_event_list, state, clock , ordering_servers_rest_time , customer_index):
+    state['Ordering_Server_Resting'] = 0
+    if state['Ordering_queue'] == 0:
+        state['Ordering_Server_Idle'] += 1
+    else:
+        state['Ordering_queue'] -= 1
+        #random variates for determining time of ordering process and paying the money
+        ordering = triangular_random_variate(1, 2, 4)
+        paying_money = triangular_random_variate(1, 2, 3)
+        #this should be completed when the OF event developed
+        FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["OF" , clock + ordering + paying_money , customer_index])
+    #updating the cumulative statistics
+    ordering_servers_rest_time += 10
 
+
+# Receiving Server Rest Start
+# should be developed by Abolfazl
+def RSRS(future_event_list, state, clock):
+    if state['Receiving_Server_Idle'] == 0:
+        state['Receiving_Server_Rest_blocked'] += 1
+    else:
+        state['Receiving_Server_Resting'] += 1
+        FEL_maker(future_event_list, ["Event type" , "Event time"], ["RSRF" , clock + 10])
+
+# Receiving Server Rest Finish
+# should be developed by Abolfazl
+def RSRF(future_event_list, state, clock, receiving_servers_rest_time , customer_index):
+    state['Receiving_Server_Resting'] = 0
+    if state['Receiving_queue'] == 0:
+        state['Receiving_Server_Idle'] += 1
+    else:
+        state['Receiving_queue'] -= 1
+        #random variates for determining time of receiving the ordered food
+        receiving = random_uniform_between(0.5,2)
+        #this should be completed when the OF event developed
+        FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["RF" , clock + receiving , customer_index])
+    #updating the cumulative statistics
+    receiving_servers_rest_time += 10
+    state['Receiving_Server_Idle'] = 2
+    state['Receiving_Server_Resting'] = 0
+    state['Receiving_Server_Rest_blocked'] = 0
+    state['Receiving_queue'] = 0
+
+def update_Real_clock(Real_clock, clock):
+    Real_clock["minute"] = clock % 60
+    Real_clock["hour"] = (clock - Real_clock["minute"]) / 60
+
+def update(output_tracking_table, Real_clock, current_event, state, step):
+
+    new_row = dict()
+    new_row["clock"] = Real_clock
+    new_row["current event type"] = current_event['Event type']
+    new_row["Ordering_Server_Idle"] = state['Ordering_Server_Idle']
+    new_row["Ordering_Server_Resting"] = state['Ordering_Server_Resting']
+    new_row["Ordering_Server_Rest_blocked"] = state['Ordering_Server_Rest_blocked']
+    new_row["Ordering_queue"] = state['Ordering_queue']
+    new_row["Receiving_Server_Idle"] = state['Receiving_Server_Idle']
+    new_row["Receiving_Server_Resting"] = state['Receiving_Server_Resting']
+    new_row["Receiving_Server_Rest_blocked"] = state['Receiving_Server_Rest_blocked']
+    new_row["Receiving_queue"] = state['Receiving_queue']
+    new_row["Serving_Chairs_Idle"] = state['Serving_Chairs_Idle']
+    new_row["serving_queue"] = state['serving_queue']
+    new_row["total_time_customer_in_system"] = total_time_customer_in_system
+    new_row["total_num_of_exited_customers"] = total_num_of_exited_customers
+    new_row["total_time_customer_in_receiving_queue"] = total_time_customer_in_receiving_queue
+    new_row["total_num_of_customers_received_food"] = total_num_of_customers_received_food
+    new_row["serving_food_queue_length"] = serving_food_queue_length[step-1]
+    new_row["total_ordering_server_busy_time"] = total_ordering_server_busy_time
+    new_row["total_receiving_server_busy_time"] = total_receiving_server_busy_time
+    new_row["ordering_servers_rest_time"] = ordering_servers_rest_time
+    new_row["receiving_servers_rest_time"] = receiving_servers_rest_time
+    #append row to the dataframe
+    output_tracking_table = output_tracking_table.append(new_row, ignore_index=True)
+    
+
+
+# should be developed by Abolfazl
+def simulation(simulation_time):
+    output_tracking_table = pd.DataFrame(columns=["clock", "current event type", "Ordering_Server_Idle", "Ordering_Server_Resting" , "Ordering_Server_Rest_blocked",
+    "Ordering_queue" , "Receiving_Server_Idle" , "Receiving_Server_Resting" , "Receiving_Server_Rest_blocked", "Receiving_queue" , "Serving_Chairs_Idle" ,
+    "serving_queue" , "total_time_customer_in_system", "total_time_customer_in_system","total_num_of_exited_customers","total_time_customer_in_receiving_queue",
+    "total_num_of_customers_received_food","serving_food_queue_length","total_ordering_server_busy_time", "total_receiving_server_busy_time" , "ordering_servers_rest_time",
+    "receiving_servers_rest_time" ])
+
+    state, future_event_list , step, clock, Real_clock = starting_state()
+
+    future_event_list.append({'Event type': 'End of Simulation', 'Event time': simulation_time})
+
+    while clock < simulation_time:
+
+        sorted_fel = sorted(future_event_list, key=lambda x: x['Event time'])
+        print(sorted_fel)
+        step += 1
+        current_event = sorted_fel[0]
+        clock = current_event['Event time']
+        update_Real_clock(Real_clock, clock)
+
+        if clock < simulation_time:
+            if current_event['Event type'] == 'PCE':
+                PCE(future_event_list, state, clock , customers)
+            elif current_event['Event type'] == 'CCE':
+                CCE(future_event_list, state, clock , customers)
+            elif current_event['Event type'] == 'BE':
+                BE(future_event_list, state, clock)
+            elif current_event['Event type'] == 'OF':
+                OF(future_event_list, state, clock)
+            elif current_event['Event type'] == 'RE':
+                RE(future_event_list, state, clock)
+            elif current_event['Event type'] == 'RF':
+                RF(future_event_list, state, clock , total_time_customer_in_receiving_queue , total_num_of_customers_received_food , customers , current_event["Customer index"])
+            elif current_event['Event type'] == 'SE':
+                SE(future_event_list, state, clock)
+            elif current_event['Event type'] == 'SF':
+                SF(future_event_list, state, clock)
+            elif current_event['Event type'] == 'E':
+                E(future_event_list, state, clock)
+            elif current_event['Event type'] == 'OSRS':
+                OSRS(future_event_list, state, clock)
+            elif current_event['Event type'] == 'OSRF':
+                OSRF(future_event_list, state, clock , ordering_servers_rest_time , current_event["Customer index"])
+            elif current_event['Event type'] == 'RSRS':
+                RSRS(future_event_list, state, clock)
+            elif current_event['Event type'] == 'RSRF':
+                RSRF(future_event_list, state, clock, receiving_servers_rest_time , customer_index)
+
+            #updating the cumulative statistics
+            serving_food_queue_length.append(state['Receiving_queue'])
+            #updating tracking table
+            update(output_tracking_table, Real_clock, current_event, state, step)
+            future_event_list.remove(current_event)
+        else:
+            break
+
+    print("Restaurant is closed!")
+
+
+simulation(int(input("Enter the Simulation Time: ")))
