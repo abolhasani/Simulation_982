@@ -5,7 +5,7 @@ Outputs : 1-mean time for customer being in the system
           2-mean customer's waiting time in receiving food
           3-mean and maximum of queue length in serving food part
           4-mean performance of the servers in ordering and receiving part
-          5-mean and maximum of queue length in recieving and ordering food part      
+          5-mean and maximum of queue length in recieving and ordering food part
 Starting State = ...
 
 Authors: Mohammad Sadegh Abolhasani, Abolfazl Tghavi
@@ -13,11 +13,28 @@ Starting Date:9 May 2020
 Finishing Date:... May 2020
 """
 
+print("Restaurant is closed!")
+
+
+
+
 import random
 import math
 import pandas as pd
 import numpy as np
 from operator import itemgetter
+
+#performance measures
+performance_measures = dict()
+performance_measures["mean time for customer being in the system"] = []
+performance_measures["mean customer's waiting time in receiving food"] = []
+performance_measures["mean of queue length in serving food part"] = []
+performance_measures["maximum of queue length in serving food part"] = []
+performance_measures["mean performance of the servers in ordering"] = []
+performance_measures["mean performance of the servers in receiving"] = []
+performance_measures["mean of queue length in ordering food part"] = []
+performance_measures["mean of queue length in receiving food part"] = []
+
 
 #system parameters
 num_of_ordering_servers = 5
@@ -30,8 +47,8 @@ payment_parameters = {"min" : 1 , "mid" : 2 , "max" : 3}
 receiving_parameters = {"min" : 0.5 , "max" : 2}
 serving_parameters = {"min" : 10 , "mid" : 20 , "max" : 30}
 resting_time = 10
-PCE_mean_arrival_time = 0.3
-CCE_mean_arrival_time = 0.5
+PCE_mean_arrival_time = 3
+CCE_mean_arrival_time = 5
 bus_mean_passangers = 30
 
 # an array for holding the information of all customers attended
@@ -70,7 +87,7 @@ def starting_state():
 
     # this clock will be used in the code and it is based on the minutes which is passed till then
     clock = 0
-    
+
     step = 0
 
     # State
@@ -79,8 +96,8 @@ def starting_state():
     state['Ordering_Server_Resting'] = 0
     state['Ordering_Server_Rest_blocked'] = 0
     state['Ordering_queue'] = 0
-    state['Receiving_Server_Idle'] = 2
-    state['Receiving_Server_Resting'] = num_of_receiving_servers
+    state['Receiving_Server_Idle'] = num_of_receiving_servers
+    state['Receiving_Server_Resting'] = 0
     state['Receiving_Server_Rest_blocked'] = 0
     state['Receiving_queue'] = 0
     state['Serving_Chairs_Idle'] = num_of_chairs_in_serving_food
@@ -176,7 +193,7 @@ def PCE(future_event_list, state, clock , customers):
     customer = Customer(customer_index, clock)
     customers.append(customer)
 
-    if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
+    if state["Ordering_Server_Idle"] == 0:
         state["Ordering_queue"] += 1
         global ordering_queue
         ordering_queue.append(customers[customer_index])
@@ -202,7 +219,7 @@ def CCE(future_event_list, state, clock, customers):
         #instantiating a new customer and appendign it to the list of customers
         customer = Customer(customer_index, clock)
         customers.append(customer)
-        if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
+        if state["Ordering_Server_Idle"] == 0:
             state["Ordering_queue"] += 1
             global ordering_queue
             ordering_queue.append(customers[customer_index])
@@ -227,7 +244,7 @@ def BE(future_event_list, state, clock, customers):
         # instantiating a new customer and appending it to the list of customers
         customer = Customer(customer_index, clock)
         customers.append(customer)
-        if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
+        if state["Ordering_Server_Idle"] == 0:
             state["Ordering_queue"] += 1
             global ordering_queue
             ordering_queue.append(customers[customer_index])
@@ -252,7 +269,8 @@ def OF(future_event_list, state, clock, customer_index):
     going_to_receive = exponential_random_variate(walking_mean_time)
     FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],["RE", clock + going_to_receive, customer_index])
     if state["Ordering_queue"] == 0:
-        state["Ordering_Server_Idle"] += 1
+        if state["Ordering_Server_Idle"] < num_of_ordering_servers:
+            state["Ordering_Server_Idle"] += 1
     else:
         state["Ordering_queue"] -= 1
         # random variates for determining time of ordering process and paying the money
@@ -262,14 +280,14 @@ def OF(future_event_list, state, clock, customer_index):
         FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"], ["OF", clock + ordering + paying_money, ordering_queue[0].index])
         ordering_queue.remove(ordering_queue[0])
         # updating the cumulative statistics
-        global total_ordering_server_busy_time 
+        global total_ordering_server_busy_time
         total_ordering_server_busy_time += ordering + paying_money
 
 
 # Receiving Entrance
 # should be developed by Mohammad Sadegh
 def RE(future_event_list, state, clock, customers, customer_index):
-    if state["Receiving_Server_Idle"] + num_of_receiving_servers == num_of_receiving_servers:
+    if state["Receiving_Server_Idle"] == 0:
         state["Receiving_queue"] += 1
         global receiving_queue
         receiving_queue.append(customers[customer_index])
@@ -290,16 +308,16 @@ def RE(future_event_list, state, clock, customers, customer_index):
 # should be developed by Abolfazl
 def RF(future_event_list, state, clock ,customers , customer_index):
     #this part should be completed after abol's part
-    going_to_serving = exponential_random_variate(walking_mean_time)
-    FEL_maker(future_event_list,["Event type" , "Event time" , "Customer index"], ["SE" , clock + going_to_serving , customer_index])
+    FEL_maker(future_event_list,["Event type" , "Event time" , "Customer index"], ["SE" , clock + exponential_random_variate(walking_mean_time) , customer_index])
     if state['Receiving_Server_Rest_blocked'] == 1 :
         state['Receiving_Server_Rest_blocked'] = 0
         state['Receiving_Server_Resting'] += 1
     if  state['Receiving_queue'] == 0 :
-        state['Receiving_Server_Idle'] += 1
+        if state['Receiving_Server_Idle'] < num_of_receiving_servers:
+            state['Receiving_Server_Idle'] += 1
     else :
         state['Receiving_queue'] -= 1
-        receiving = random_uniform_between(receiving_parameters["min"],receiving_parameters["max"])
+        receiving = random_uniform_between(0.5,2)
         global receiving_queue
         FEL_maker(future_event_list,["Event type" , "Event time" , "Customer index"], ["RF" , clock + receiving , receiving_queue[0].index])
         receiving_queue.remove(receiving_queue[0])
@@ -308,7 +326,7 @@ def RF(future_event_list, state, clock ,customers , customer_index):
         total_receiving_server_busy_time += receiving
     #updating the cumulative statistics
     global total_time_customer_in_receiving_queue
-    global total_num_of_customers_received_food 
+    global total_num_of_customers_received_food
     total_time_customer_in_receiving_queue += (clock - customers[customer_index].entering_time_to_receiving_section)
     total_num_of_customers_received_food += 1
 
@@ -316,7 +334,7 @@ def RF(future_event_list, state, clock ,customers , customer_index):
 # Serving Entrance
 # should be developed by Mohammad Sadegh
 def SE(future_event_list, state, clock, customer_index):
-    if state["Serving_Chairs_Idle"] + num_of_chairs_in_serving_food == num_of_chairs_in_serving_food:
+    if state["Serving_Chairs_Idle"] == 0:
         state["serving_queue"] += 1
         global serving_queue
         serving_queue.append(customers[customer_index])
@@ -332,7 +350,7 @@ def SE(future_event_list, state, clock, customer_index):
 # Serving Finish
 # should be developed by Mohammad Sadegh
 def SF(future_event_list, state, clock, customer_index):
-    exiting = exponential_random_variate(exitting_mean_time)
+    exiting = exponential_random_variate(1)
     FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"], ["E", clock + exiting, customer_index])
     if state["serving_queue"] == 0:
         state["Serving_Chairs_Idle"] += 1
@@ -353,7 +371,7 @@ def SF(future_event_list, state, clock, customer_index):
 def E(clock , customers , customer_index):
     # updating the cumulative statistics
     global total_time_customer_in_system
-    global total_num_of_exited_customers 
+    global total_num_of_exited_customers
     total_time_customer_in_system += (clock - customers[customer_index].entering_time)
     total_num_of_exited_customers += 1
     return 0
@@ -363,7 +381,7 @@ def E(clock , customers , customer_index):
 # Ordering Server Rest Start
 # should be developed by Mohammad Sadegh
 def OSRS(future_event_list, state, clock):
-    if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
+    if state["Ordering_Server_Idle"] == 0:
         state["Ordering_Server_Rest_blocked"] += 1
     else:
         state["Ordering_Server_Resting"] += 1
@@ -374,7 +392,8 @@ def OSRS(future_event_list, state, clock):
 def OSRF(future_event_list, state, clock ):
     state['Ordering_Server_Resting'] = 0
     if state['Ordering_queue'] == 0:
-        state['Ordering_Server_Idle'] += 1
+        if state['Ordering_Server_Idle'] < num_of_ordering_servers:
+            state['Ordering_Server_Idle'] += 1
     else:
         state['Ordering_queue'] -= 1
         #random variates for determining time of ordering process and paying the money
@@ -395,7 +414,7 @@ def OSRF(future_event_list, state, clock ):
 # Receiving Server Rest Start
 # should be developed by Abolfazl
 def RSRS(future_event_list, state, clock):
-    if state["Receiving_Server_Idle"] + num_of_receiving_servers == num_of_receiving_servers:
+    if state['Receiving_Server_Idle'] == 0:
         state['Receiving_Server_Rest_blocked'] += 1
     else:
         state['Receiving_Server_Resting'] += 1
@@ -406,22 +425,23 @@ def RSRS(future_event_list, state, clock):
 def RSRF(future_event_list, state, clock):
     state['Receiving_Server_Resting'] = 0
     if state['Receiving_queue'] == 0:
-        state['Receiving_Server_Idle'] += 1
+        if state['Receiving_Server_Idle'] < num_of_receiving_servers:
+            state['Receiving_Server_Idle'] += 1
     else:
         state['Receiving_queue'] -= 1
         #random variates for determining time of receiving the ordered food
-        receiving = random_uniform_between(receiving_parameters["min"],receiving_parameters["max"])
+        receiving = random_uniform_between(receiving_parameters["min"] , receiving_parameters["max"])
         #this should be completed when the OF event developed
         global receiving_queue
         FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["RF" , clock + receiving , receiving_queue[0].index])
-        receiving_queue.remove(receiving_queue[0])   
+        receiving_queue.remove(receiving_queue[0])
     #updating the cumulative statistics
     global receiving_servers_rest_time
     receiving_servers_rest_time += resting_time
 
 
 def update(output_tracking_table, clock, current_event, state, step):
-   
+
     new_row = dict()
     new_row["step"] = step
     new_row["clock"] = clock
@@ -463,15 +483,15 @@ def update(output_tracking_table, clock, current_event, state, step):
     new_row["mean performance of the servers in receiving"] = total_receiving_server_busy_time/(num_of_receiving_servers*clock - receiving_servers_rest_time)
     new_row["mean of queue length in ordering food part"] = sum(ordering_queue_length)/len(ordering_queue_length)
     new_row["mean of queue length in receiving food part"] = sum(receiving_queue_length)/len(receiving_queue_length)
-    
-  
-    
+
+
+
     #append row to the dataframe
     output_tracking_table = output_tracking_table.append(new_row, ignore_index=True)
     return output_tracking_table
 
 def expot_data_frame_into_excel_with_adjustment(output_tracking_table):
-    
+
     # Create a Pandas Excel writer using XlsxWriter as the engine.
     writer = pd.ExcelWriter('R1.xlsx', engine='xlsxwriter')
     # Convert the dataframe to an XlsxWriter Excel object.
@@ -492,7 +512,7 @@ def expot_data_frame_into_excel_with_adjustment(output_tracking_table):
     worksheet.set_column('B:ZZ', None , cell_format)
     # Close the Pandas Excel writer and output the Excel file.
     writer.save()
-    
+
 # should be developed by Abolfazl
 def simulation(simulation_time):
     output_tracking_table = pd.DataFrame(columns=["step" , "clock", "hour" , "minute" , "current event type", "Ordering_Server_Idle", "Ordering_Server_Resting" , "Ordering_Server_Rest_blocked",
@@ -532,8 +552,9 @@ def simulation(simulation_time):
         for i in range(len(customers)):
             print("customer" , customers[i].index)
             print(customers[i].entering_time_to_receiving_section)
-        """
+        
         print(sorted_fel)
+        """
         step += 1
         current_event = sorted_fel[0]
         clock = current_event['Event time']
@@ -570,7 +591,7 @@ def simulation(simulation_time):
             serving_food_queue_length.append(state['serving_queue'])
             ordering_queue_length.append(len(ordering_queue))
             receiving_queue_length.append(len(receiving_queue))
-            
+
             #updating tracking table
             output_tracking_table = update(output_tracking_table, clock, current_event, state, step)
             future_event_list.remove(current_event)
@@ -578,8 +599,6 @@ def simulation(simulation_time):
             break
 
     print("Restaurant is closed!")
-    """"
-    print("customer entering time to recieving")
     print("mean time for customer being in the system")
     print(total_time_customer_in_system/total_num_of_exited_customers)
     print("mean customer's waiting time in receiving food")
@@ -596,11 +615,38 @@ def simulation(simulation_time):
     print(sum(ordering_queue_length)/len(ordering_queue_length))
     print("mean of queue length in receiving food part")
     print(sum(receiving_queue_length)/len(receiving_queue_length))
-    print(output_tracking_table)
-    """
+
+    performance_measures["mean time for customer being in the system"].append(total_time_customer_in_system/total_num_of_exited_customers)
+    performance_measures["mean customer's waiting time in receiving food"].append(total_time_customer_in_receiving_queue/total_num_of_customers_received_food)
+    performance_measures["mean of queue length in serving food part"].append(sum(serving_food_queue_length)/len(serving_food_queue_length))
+    performance_measures["maximum of queue length in serving food part"].append(max(serving_food_queue_length))
+    performance_measures["mean performance of the servers in ordering"].append(total_ordering_server_busy_time/(num_of_ordering_servers*simulation_time - ordering_servers_rest_time))
+    performance_measures["mean performance of the servers in receiving"].append(total_receiving_server_busy_time/(num_of_receiving_servers*simulation_time - receiving_servers_rest_time))
+    performance_measures["mean of queue length in ordering food part"].append(sum(ordering_queue_length)/len(ordering_queue_length))
+    performance_measures["mean of queue length in receiving food part"].append(sum(receiving_queue_length)/len(receiving_queue_length))
     expot_data_frame_into_excel_with_adjustment(output_tracking_table)
-    
 
 
-simulation(int(input("Enter the Simulation Time: ")))
-#print the outputs
+replications = int(input("Enter the number of replications: "))
+simulation_time = int(input("Enter the Simulation Time: "))
+for i in range(replications):
+    print("---------------replication " , i+1 ," ---------------")
+    simulation(simulation_time)
+
+#print the outputs which are averages of performance measures in specified replication numbers
+print("average of " , replications , " replications for mean time for customer being in the system")
+print(sum(performance_measures["mean time for customer being in the system"])/len(performance_measures["mean time for customer being in the system"]))
+print("average of " , replications , " replications for mean customer's waiting time in receiving food")
+print(sum(performance_measures["mean customer's waiting time in receiving food"])/len(performance_measures["mean customer's waiting time in receiving food"]))
+print("average of " , replications , " replications for mean of queue length in serving food part")
+print(sum(performance_measures["mean of queue length in serving food part"])/len(performance_measures["mean of queue length in serving food part"]))
+print("average of " , replications , " replications for maximum of queue length in serving food part")
+print(sum(performance_measures["maximum of queue length in serving food part"])/len(performance_measures["maximum of queue length in serving food part"]))
+print("average of " , replications , " replications for mean performance of the servers in ordering")
+print(sum(performance_measures["mean performance of the servers in ordering"])/len(performance_measures["mean performance of the servers in ordering"]))
+print("average of " , replications , " replications for mean performance of the servers in receiving")
+print(sum(performance_measures["mean performance of the servers in receiving"])/len(performance_measures["mean performance of the servers in receiving"]))
+print("average of " , replications , " replications for mean of queue length in ordering food part")
+print(sum(performance_measures["mean of queue length in ordering food part"])/len(performance_measures["mean of queue length in ordering food part"]))
+print("average of " , replications , " replications for mean time for customer being in the system")
+print(sum(performance_measures["mean of queue length in receiving food part"])/len(performance_measures["mean of queue length in receiving food part"]))
