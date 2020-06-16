@@ -19,6 +19,10 @@ import pandas as pd
 import numpy as np
 from operator import itemgetter
 
+#system parameters
+num_of_ordering_servers = 5
+num_of_receiving_servers = 2
+num_of _chairs_in_serving_food = 30
 
 # an array for holding the information of all customers attended
 customers = []
@@ -56,11 +60,7 @@ def starting_state():
 
     # this clock will be used in the code and it is based on the minutes which is passed till then
     clock = 0
-    # this clock has two part: one for hour and the other for minutes and it will start from 10 AM
-    Real_clock = dict()
-    Real_clock["hour"] = 10
-    Real_clock["minute"] = 0
-
+    
     step = 0
 
     # State
@@ -89,7 +89,7 @@ def starting_state():
     FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["RSRS" , 110])
     FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["RSRS" , 230])
     FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["RSRS" , 290])
-    return state, future_event_list, step, clock, Real_clock
+    return state, future_event_list, step, clock
 
 
 # a function for making new event notices and adding them to the FEL
@@ -408,14 +408,14 @@ def RSRF(future_event_list, state, clock):
     global receiving_servers_rest_time
     receiving_servers_rest_time += 10
 
-def update_Real_clock(Real_clock, clock):
-    Real_clock["minute"] = clock % 60
-    Real_clock["hour"] = 10 + int(clock/60)
 
-def update(output_tracking_table, Real_clock, current_event, state, step):
-
+def update(output_tracking_table, clock, current_event, state, step):
+   
     new_row = dict()
-    new_row["clock"] = Real_clock
+    new_row["step"] = step
+    new_row["clock"] = clock
+    new_row["hour"] = 10 + int(clock/60)
+    new_row["minute"] = clock % 60
     new_row["current event type"] = current_event['Event type']
     new_row["Ordering_Server_Idle"] = state['Ordering_Server_Idle']
     new_row["Ordering_Server_Resting"] = state['Ordering_Server_Resting']
@@ -433,24 +433,66 @@ def update(output_tracking_table, Real_clock, current_event, state, step):
     new_row["total_num_of_customers_received_food"] = total_num_of_customers_received_food
     new_row["serving_food_queue_length"] = serving_food_queue_length[step-1]
     new_row["total_ordering_server_busy_time"] = total_ordering_server_busy_time
-    new_row["total_receiving_server_busy_time"] = total_receiving_server_busy_time
     new_row["ordering_servers_rest_time"] = ordering_servers_rest_time
+    new_row["total_receiving_server_busy_time"] = total_receiving_server_busy_time
     new_row["receiving_servers_rest_time"] = receiving_servers_rest_time
+    new_row["ordering_queue_length"] = ordering_queue_length[step-1]
+    new_row["receiving_queue_length"] = ordering_queue_length[step-1]
+    if total_num_of_exited_customers != 0 :
+        new_row["mean time for customer being in the system"] = total_time_customer_in_system/total_num_of_exited_customers
+    else :
+         new_row["mean time for customer being in the system"] = "No one has completed the whole parts yet"
+    if total_num_of_customers_received_food != 0:
+        new_row["mean customer's waiting time in receiving food"] = total_time_customer_in_receiving_queue/total_num_of_customers_received_food
+    else :
+        new_row["mean customer's waiting time in receiving food"] = "No one has recieved food yet"
+    new_row["mean of queue length in serving food part"] = sum(serving_food_queue_length)/len(serving_food_queue_length)
+    new_row["maximum of queue length in serving food part"] = max(serving_food_queue_length)
+    new_row["mean performance of the servers in ordering"] = total_ordering_server_busy_time/(5*clock - ordering_servers_rest_time)
+    new_row["mean performance of the servers in receiving"] = total_receiving_server_busy_time/(2*clock - receiving_servers_rest_time)
+    new_row["mean of queue length in ordering food part"] = sum(ordering_queue_length)/len(ordering_queue_length)
+    new_row["mean of queue length in receiving food part"] = sum(receiving_queue_length)/len(receiving_queue_length)
+    
+  
+    
     #append row to the dataframe
     output_tracking_table = output_tracking_table.append(new_row, ignore_index=True)
     return output_tracking_table
 
-
-
+def expot_data_frame_into_excel_with_adjustment(output_tracking_table):
+    
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    writer = pd.ExcelWriter('R1.xlsx', engine='xlsxwriter')
+    # Convert the dataframe to an XlsxWriter Excel object.
+    output_tracking_table.to_excel(writer, sheet_name='Sheet1' , startrow=1, header=False)
+    # Get the xlsxwriter workbook and worksheet objects.
+    workbook  = writer.book
+    worksheet = writer.sheets['Sheet1']
+    # Add a header format
+    #in the following link you can see the list of fg_color codes for 255 different color
+    #https://plumbum.readthedocs.io/en/latest/colors.html
+    header_format = workbook.add_format({'bold': True,'text_wrap': False,'align': 'center', 'valign': 'vcenter', 'fg_color': '#A8A8A8','border': 1})
+    # Write the column headers with the defined format
+    for col_num, value in enumerate(output_tracking_table.columns.values):
+        worksheet.write(0, col_num + 1, value, header_format)
+    # Add a header format
+    cell_format = workbook.add_format({'bold': False,'text_wrap': True,'align': 'center', 'valign': 'vcenter','border': 1})
+    # Set the format but not the column width.
+    worksheet.set_column('B:ZZ', None , cell_format)
+    # Close the Pandas Excel writer and output the Excel file.
+    writer.save()
+    
 # should be developed by Abolfazl
 def simulation(simulation_time):
-    output_tracking_table = pd.DataFrame(columns=["clock", "current event type", "Ordering_Server_Idle", "Ordering_Server_Resting" , "Ordering_Server_Rest_blocked",
+    output_tracking_table = pd.DataFrame(columns=["step" , "clock", "hour" , "minute" , "current event type", "Ordering_Server_Idle", "Ordering_Server_Resting" , "Ordering_Server_Rest_blocked",
     "Ordering_queue" , "Receiving_Server_Idle" , "Receiving_Server_Resting" , "Receiving_Server_Rest_blocked", "Receiving_queue" , "Serving_Chairs_Idle" ,
-    "serving_queue" , "total_time_customer_in_system", "total_time_customer_in_system","total_num_of_exited_customers","total_time_customer_in_receiving_queue",
-    "total_num_of_customers_received_food","serving_food_queue_length","total_ordering_server_busy_time", "total_receiving_server_busy_time" , "ordering_servers_rest_time",
-    "receiving_servers_rest_time" ])
+    "serving_queue" , "total_time_customer_in_system","total_num_of_exited_customers","total_time_customer_in_receiving_queue",
+    "total_num_of_customers_received_food","serving_food_queue_length","total_ordering_server_busy_time", "ordering_servers_rest_time" , "total_receiving_server_busy_time" ,
+    "receiving_servers_rest_time" , "ordering_queue_length" , "receiving_queue_length" , "mean time for customer being in the system",  "mean customer's waiting time in receiving food",
+     "mean of queue length in serving food part" , "maximum of queue length in serving food part" , "mean performance of the servers in ordering" , "mean performance of the servers in receiving",
+     "mean of queue length in ordering food part" , "mean of queue length in receiving food part" ])
 
-    state, future_event_list , step, clock, Real_clock = starting_state()
+    state, future_event_list , step, clock= starting_state()
 
     future_event_list.append({'Event type': 'End of Simulation', 'Event time': simulation_time})
 
@@ -464,7 +506,7 @@ def simulation(simulation_time):
         print("receiving_queue")
         for i in range(len(receiving_queue)):
             print(receiving_queue[i].index)
-        """
+        
         print("OSI" , state['Ordering_Server_Idle'])
         print("OSR" , state['Ordering_Server_Resting'])
         print("OSRB" , state['Ordering_Server_Rest_blocked'])
@@ -475,7 +517,7 @@ def simulation(simulation_time):
         print("RQ" , state['Receiving_queue'])
         print("SCI" , state['Serving_Chairs_Idle'])
         print(state['serving_queue'])
-        """"
+        
         for i in range(len(customers)):
             print("customer" , customers[i].index)
             print(customers[i].entering_time_to_receiving_section)
@@ -484,7 +526,6 @@ def simulation(simulation_time):
         step += 1
         current_event = sorted_fel[0]
         clock = current_event['Event time']
-        update_Real_clock(Real_clock, clock)
 
         if clock < simulation_time:
             if current_event['Event type'] == 'PCE':
@@ -520,24 +561,14 @@ def simulation(simulation_time):
             receiving_queue_length.append(len(receiving_queue))
             
             #updating tracking table
-            output_tracking_table = update(output_tracking_table, Real_clock, current_event, state, step)
+            output_tracking_table = update(output_tracking_table, clock, current_event, state, step)
             future_event_list.remove(current_event)
         else:
             break
 
     print("Restaurant is closed!")
+    """"
     print("customer entering time to recieving")
-    for i in range(len(customers)):
-        print(customers[i].entering_time_to_receiving_section)
-    print(total_time_customer_in_system)
-    print(total_num_of_exited_customers)
-    print(total_time_customer_in_receiving_queue)
-    print(total_num_of_customers_received_food)
-    print(total_ordering_server_busy_time)
-    print(ordering_servers_rest_time)
-    print(total_receiving_server_busy_time)
-    print(receiving_servers_rest_time)
-    
     print("mean time for customer being in the system")
     print(total_time_customer_in_system/total_num_of_exited_customers)
     print("mean customer's waiting time in receiving food")
@@ -550,8 +581,14 @@ def simulation(simulation_time):
     print(total_ordering_server_busy_time/(5*simulation_time - ordering_servers_rest_time))
     print("mean performance of the servers in receiving")
     print(total_receiving_server_busy_time/(2*simulation_time - receiving_servers_rest_time))
-    
+    print("mean of queue length in ordering food part")
+    print(sum(ordering_queue_length)/len(ordering_queue_length))
+    print("mean of queue length in receiving food part")
+    print(sum(receiving_queue_length)/len(receiving_queue_length))
     print(output_tracking_table)
+    """
+    expot_data_frame_into_excel_with_adjustment(output_tracking_table)
+    
 
 
 simulation(int(input("Enter the Simulation Time: ")))
