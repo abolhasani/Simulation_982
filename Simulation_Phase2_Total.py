@@ -479,11 +479,22 @@ def update(output_tracking_table, clock, current_event, state, step):
         new_row["mean customer's waiting time in receiving food"] = "Null"
     new_row["mean of queue length in serving food part"] = sum(serving_food_queue_length)/len(serving_food_queue_length)
     new_row["maximum of queue length in serving food part"] = max(serving_food_queue_length)
-    new_row["mean performance of the servers in ordering"] = total_ordering_server_busy_time/(num_of_ordering_servers*clock - ordering_servers_rest_time)
-    new_row["mean performance of the servers in receiving"] = total_receiving_server_busy_time/(num_of_receiving_servers*clock - receiving_servers_rest_time)
-    new_row["mean of queue length in ordering food part"] = sum(ordering_queue_length)/len(ordering_queue_length)
-    new_row["mean of queue length in receiving food part"] = sum(receiving_queue_length)/len(receiving_queue_length)
-
+    if (num_of_ordering_servers*clock - ordering_servers_rest_time) != 0:
+        new_row["mean performance of the servers in ordering"] = total_ordering_server_busy_time/(num_of_ordering_servers*clock - ordering_servers_rest_time)
+    else :
+        new_row["mean performance of the servers in ordering"] = "Null"
+    if (num_of_receiving_servers*clock - receiving_servers_rest_time) != 0:
+        new_row["mean performance of the servers in receiving"] = total_receiving_server_busy_time/(num_of_receiving_servers*clock - receiving_servers_rest_time)
+    else :
+        new_row["mean performance of the servers in ordering"] = "Null"
+    if len(ordering_queue_length) != 0:
+        new_row["mean of queue length in ordering food part"] = sum(ordering_queue_length)/len(ordering_queue_length)
+    else :
+        new_row["mean of queue length in ordering food part"] = "Null"
+    if len(receiving_queue_length) != 0:
+        new_row["mean of queue length in receiving food part"] = sum(receiving_queue_length)/len(receiving_queue_length)
+    else :
+        new_row["mean of queue length in receiving food part"] = "Null"
 
 
     #append row to the dataframe
@@ -630,7 +641,7 @@ def simulation(simulation_time):
 replications = int(input("Enter the number of replications: "))
 simulation_time = int(input("Enter the Simulation Time: "))
 for i in range(replications):
-    print("---------------replication " , i+1 ," ---------------")
+    print("--------------- replication " , i+1 ," ---------------")
     simulation(simulation_time)
 
 #print the outputs which are averages of performance measures in specified replication numbers
