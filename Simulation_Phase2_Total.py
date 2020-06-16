@@ -23,6 +23,16 @@ from operator import itemgetter
 num_of_ordering_servers = 5
 num_of_receiving_servers = 2
 num_of_chairs_in_serving_food = 30
+walking_mean_time = 0.5
+exitting_mean_time = 1
+ordering_parameters = {"min" : 1 , "mid" : 2 , "max" : 4}
+payment_parameters = {"min" : 1 , "mid" : 2 , "max" : 3}
+receiving_parameters = {"min" : 0.5 , "max" : 2}
+serving_parameters = {"min" : 10 , "mid" : 20 , "max" : 30}
+resting_time = 10
+PCE_mean_arrival_time = 0.3
+CCE_mean_arrival_time = 0.5
+bus_mean_passangers = 30
 
 # an array for holding the information of all customers attended
 customers = []
@@ -65,21 +75,21 @@ def starting_state():
 
     # State
     state = dict()
-    state['Ordering_Server_Idle'] = 5
+    state['Ordering_Server_Idle'] = num_of_ordering_servers
     state['Ordering_Server_Resting'] = 0
     state['Ordering_Server_Rest_blocked'] = 0
     state['Ordering_queue'] = 0
     state['Receiving_Server_Idle'] = 2
-    state['Receiving_Server_Resting'] = 0
+    state['Receiving_Server_Resting'] = num_of_receiving_servers
     state['Receiving_Server_Rest_blocked'] = 0
     state['Receiving_queue'] = 0
-    state['Serving_Chairs_Idle'] = 30
+    state['Serving_Chairs_Idle'] = num_of_chairs_in_serving_food
     state['serving_queue'] = 0
 
     # the initial FEL
     future_event_list = list()
-    FEL_maker(future_event_list, ["Event type" , "Event time" ],  ["PCE" , exponential_random_variate(3)])
-    FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["CCE" , exponential_random_variate(5)])
+    FEL_maker(future_event_list, ["Event type" , "Event time" ],  ["PCE" , exponential_random_variate(PCE_mean_arrival_time)])
+    FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["CCE" , exponential_random_variate(CCE_mean_arrival_time)])
     FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["BE" , random_uniform_between(60 , 180)])
     FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["OSRS" , 50])
     FEL_maker(future_event_list, ["Event type" , "Event time" ] , ["OSRS" , 110])
@@ -160,7 +170,7 @@ def random_uniform_between(min, max):
 # should be developed by Abolfazl
 def PCE(future_event_list, state, clock , customers):
     #appending the next PCE event to the FEL
-    FEL_maker(future_event_list, ["Event type" , "Event time"], ["PCE" , clock + exponential_random_variate(3)])
+    FEL_maker(future_event_list, ["Event type" , "Event time"], ["PCE" , clock + exponential_random_variate(PCE_mean_arrival_time)])
     #instantiating a new customer and appendign it to the list of customers
     customer_index = len(customers)
     customer = Customer(customer_index, clock)
@@ -173,8 +183,8 @@ def PCE(future_event_list, state, clock , customers):
     else :
         state["Ordering_Server_Idle"] -= 1
         #random variates for determining time of ordering process and paying the money
-        ordering = triangular_random_variate(1, 2, 4)
-        paying_money = triangular_random_variate(1, 2, 3)
+        ordering = triangular_random_variate(ordering_parameters["min"],ordering_parameters["mid"], ordering_parameters["max"])
+        paying_money = triangular_random_variate(payment_parameters["min"],payment_parameters["mid"], payment_parameters["max"])
         FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["OF" , clock + ordering + paying_money , customer_index])
         #updating the cumulative statistics
         global total_ordering_server_busy_time
@@ -184,7 +194,7 @@ def PCE(future_event_list, state, clock , customers):
 # should be developed by Abolfazl
 def CCE(future_event_list, state, clock, customers):
     #appending the next CCE event to the FEL
-    FEL_maker(future_event_list, ["Event type" , "Event time"], ["CCE" , clock + exponential_random_variate(5)])
+    FEL_maker(future_event_list, ["Event type" , "Event time"], ["CCE" , clock + exponential_random_variate(CCE_mean_arrival_time)])
     #generating random variate for number of car passangers
     G = num_of_car_passangers()
     for i in range(G):
@@ -199,8 +209,8 @@ def CCE(future_event_list, state, clock, customers):
         else :
             state["Ordering_Server_Idle"] -= 1
             #random variates for determining time of ordering process and paying the money
-            ordering = triangular_random_variate(1, 2, 4)
-            paying_money = triangular_random_variate(1, 2, 3)
+            ordering = triangular_random_variate(ordering_parameters["min"],ordering_parameters["mid"], ordering_parameters["max"])
+            paying_money = triangular_random_variate(payment_parameters["min"],payment_parameters["mid"], payment_parameters["max"])
             FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["OF" , clock + ordering + paying_money , customer_index])
             #updating the cumulative statistics
             global total_ordering_server_busy_time
@@ -211,7 +221,7 @@ def CCE(future_event_list, state, clock, customers):
 # Bus Entrance
 # should be developed by Mohammad Sadegh
 def BE(future_event_list, state, clock, customers):
-    p = int(poisson_random_variate(30))
+    p = int(poisson_random_variate(bus_mean_passangers))
     for i in range(p):
         customer_index = len(customers)
         # instantiating a new customer and appending it to the list of customers
@@ -224,8 +234,8 @@ def BE(future_event_list, state, clock, customers):
         else:
             state["Ordering_Server_Idle"] -= 1
             # random variates for determining time of ordering process and paying the money
-            ordering = triangular_random_variate(1, 2, 4)
-            paying_money = triangular_random_variate(1, 2, 3)
+            ordering = triangular_random_variate(ordering_parameters["min"],ordering_parameters["mid"], ordering_parameters["max"])
+            paying_money = triangular_random_variate(payment_parameters["min"],payment_parameters["mid"], payment_parameters["max"])
             FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"], ["OF", clock + ordering + paying_money, customer_index])
             # updating the cumulative statistics
             global total_ordering_server_busy_time
@@ -238,16 +248,16 @@ def OF(future_event_list, state, clock, customer_index):
     if state["Ordering_Server_Rest_blocked"] == 1:
         state["Ordering_Server_Rest_blocked"] = 0
         state['Ordering_Server_Resting'] += 1
-        FEL_maker(future_event_list, ["Event type", "Event time"], ["OSRF", clock + 10])
-    going_to_receive = exponential_random_variate(0.5)
+        FEL_maker(future_event_list, ["Event type", "Event time"], ["OSRF", clock + resting_time])
+    going_to_receive = exponential_random_variate(walking_mean_time)
     FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],["RE", clock + going_to_receive, customer_index])
     if state["Ordering_queue"] == 0:
         state["Ordering_Server_Idle"] += 1
     else:
         state["Ordering_queue"] -= 1
         # random variates for determining time of ordering process and paying the money
-        ordering = triangular_random_variate(1, 2, 4)
-        paying_money = triangular_random_variate(1, 2, 3)
+        ordering = triangular_random_variate(ordering_parameters["min"],ordering_parameters["mid"], ordering_parameters["max"])
+        paying_money = triangular_random_variate(payment_parameters["min"],payment_parameters["mid"], payment_parameters["max"])
         global ordering_queue
         FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"], ["OF", clock + ordering + paying_money, ordering_queue[0].index])
         ordering_queue.remove(ordering_queue[0])
@@ -267,7 +277,7 @@ def RE(future_event_list, state, clock, customers, customer_index):
     else:
         state["Receiving_Server_Idle"] -= 1
         # random variates for determining time of ordering process and paying the money
-        receiving = random_uniform_between(0.5,2)
+        receiving = random_uniform_between(receiving_parameters["min"],receiving_parameters["max"])
         FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"],["RF", clock + receiving, customer_index])
         customers[customer_index].entering_receiving_section_time = clock
         # updating the cumulative statistics
@@ -280,7 +290,8 @@ def RE(future_event_list, state, clock, customers, customer_index):
 # should be developed by Abolfazl
 def RF(future_event_list, state, clock ,customers , customer_index):
     #this part should be completed after abol's part
-    FEL_maker(future_event_list,["Event type" , "Event time" , "Customer index"], ["SE" , clock + exponential_random_variate(0.5) , customer_index])
+    going_to_serving = exponential_random_variate(walking_mean_time)
+    FEL_maker(future_event_list,["Event type" , "Event time" , "Customer index"], ["SE" , clock + going_to_serving , customer_index])
     if state['Receiving_Server_Rest_blocked'] == 1 :
         state['Receiving_Server_Rest_blocked'] = 0
         state['Receiving_Server_Resting'] += 1
@@ -288,7 +299,7 @@ def RF(future_event_list, state, clock ,customers , customer_index):
         state['Receiving_Server_Idle'] += 1
     else :
         state['Receiving_queue'] -= 1
-        receiving = random_uniform_between(0.5,2)
+        receiving = random_uniform_between(receiving_parameters["min"],receiving_parameters["max"])
         global receiving_queue
         FEL_maker(future_event_list,["Event type" , "Event time" , "Customer index"], ["RF" , clock + receiving , receiving_queue[0].index])
         receiving_queue.remove(receiving_queue[0])
@@ -312,7 +323,7 @@ def SE(future_event_list, state, clock, customer_index):
     else:
         state["Serving_Chairs_Idle"] -= 1
         # random variates for determining time of ordering process and paying the money
-        serving = triangular_random_variate(10, 20, 30)
+        serving = triangular_random_variate(serving_parameters["min"], serving_parameters["mid"], serving_parameters["max"])
         FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"], ["SF", clock + serving, customer_index])
     # updating the cumulative statistics
     # there is no need to update the cumulative statistics here
@@ -321,14 +332,14 @@ def SE(future_event_list, state, clock, customer_index):
 # Serving Finish
 # should be developed by Mohammad Sadegh
 def SF(future_event_list, state, clock, customer_index):
-    exiting = exponential_random_variate(1)
+    exiting = exponential_random_variate(exitting_mean_time)
     FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"], ["E", clock + exiting, customer_index])
     if state["serving_queue"] == 0:
         state["Serving_Chairs_Idle"] += 1
     else:
         state["serving_queue"] -= 1
         # random variates for determining time of ordering process and paying the money
-        serving = triangular_random_variate(10, 20, 30)
+        serving = triangular_random_variate(serving_parameters["min"], serving_parameters["mid"], serving_parameters["max"])
         global serving_queue
         FEL_maker(future_event_list, ["Event type", "Event time", "Customer index"], ["SF", clock + serving, serving_queue[0].index])
         serving_queue.remove(serving_queue[0])
@@ -356,7 +367,7 @@ def OSRS(future_event_list, state, clock):
         state["Ordering_Server_Rest_blocked"] += 1
     else:
         state["Ordering_Server_Resting"] += 1
-        FEL_maker(future_event_list, ["Event type", "Event time"], ["OSRF", clock + 10 ])
+        FEL_maker(future_event_list, ["Event type", "Event time"], ["OSRF", clock + resting_time ])
 
 # Ordering Server Rest Finish
 # should be developed by Abolfazl
@@ -367,8 +378,8 @@ def OSRF(future_event_list, state, clock ):
     else:
         state['Ordering_queue'] -= 1
         #random variates for determining time of ordering process and paying the money
-        ordering = triangular_random_variate(1, 2, 4)
-        paying_money = triangular_random_variate(1, 2, 3)
+        ordering = triangular_random_variate(ordering_parameters["min"],ordering_parameters["mid"], ordering_parameters["max"])
+        paying_money = triangular_random_variate(payment_parameters["min"],payment_parameters["mid"], payment_parameters["max"])
         #this should be completed when the OF event developed
         global ordering_queue
         FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["OF" , clock + ordering + paying_money , ordering_queue[0].index])
@@ -378,7 +389,7 @@ def OSRF(future_event_list, state, clock ):
         total_ordering_server_busy_time +=  ordering + paying_money
     #updating the cumulative statistics
     global ordering_servers_rest_time
-    ordering_servers_rest_time += 10
+    ordering_servers_rest_time += resting_time
 
 
 # Receiving Server Rest Start
@@ -388,7 +399,7 @@ def RSRS(future_event_list, state, clock):
         state['Receiving_Server_Rest_blocked'] += 1
     else:
         state['Receiving_Server_Resting'] += 1
-        FEL_maker(future_event_list, ["Event type" , "Event time"], ["RSRF" , clock + 10])
+        FEL_maker(future_event_list, ["Event type" , "Event time"], ["RSRF" , clock + resting_time])
 
 # Receiving Server Rest Finish
 # should be developed by Abolfazl
@@ -399,14 +410,14 @@ def RSRF(future_event_list, state, clock):
     else:
         state['Receiving_queue'] -= 1
         #random variates for determining time of receiving the ordered food
-        receiving = random_uniform_between(0.5,2)
+        receiving = random_uniform_between(receiving_parameters["min"],receiving_parameters["max"])
         #this should be completed when the OF event developed
         global receiving_queue
         FEL_maker(future_event_list, ["Event type" , "Event time" , "Customer index"], ["RF" , clock + receiving , receiving_queue[0].index])
         receiving_queue.remove(receiving_queue[0])   
     #updating the cumulative statistics
     global receiving_servers_rest_time
-    receiving_servers_rest_time += 10
+    receiving_servers_rest_time += resting_time
 
 
 def update(output_tracking_table, clock, current_event, state, step):
@@ -448,8 +459,8 @@ def update(output_tracking_table, clock, current_event, state, step):
         new_row["mean customer's waiting time in receiving food"] = "Null"
     new_row["mean of queue length in serving food part"] = sum(serving_food_queue_length)/len(serving_food_queue_length)
     new_row["maximum of queue length in serving food part"] = max(serving_food_queue_length)
-    new_row["mean performance of the servers in ordering"] = total_ordering_server_busy_time/(5*clock - ordering_servers_rest_time)
-    new_row["mean performance of the servers in receiving"] = total_receiving_server_busy_time/(2*clock - receiving_servers_rest_time)
+    new_row["mean performance of the servers in ordering"] = total_ordering_server_busy_time/(num_of_ordering_servers*clock - ordering_servers_rest_time)
+    new_row["mean performance of the servers in receiving"] = total_receiving_server_busy_time/(num_of_receiving_servers*clock - receiving_servers_rest_time)
     new_row["mean of queue length in ordering food part"] = sum(ordering_queue_length)/len(ordering_queue_length)
     new_row["mean of queue length in receiving food part"] = sum(receiving_queue_length)/len(receiving_queue_length)
     
@@ -578,9 +589,9 @@ def simulation(simulation_time):
     print("maximum of queue length in serving food part")
     print(max(serving_food_queue_length))
     print("mean performance of the servers in ordering")
-    print(total_ordering_server_busy_time/(5*simulation_time - ordering_servers_rest_time))
+    print(total_ordering_server_busy_time/(num_of_ordering_servers*simulation_time - ordering_servers_rest_time))
     print("mean performance of the servers in receiving")
-    print(total_receiving_server_busy_time/(2*simulation_time - receiving_servers_rest_time))
+    print(total_receiving_server_busy_time/(num_of_receiving_servers*simulation_time - receiving_servers_rest_time))
     print("mean of queue length in ordering food part")
     print(sum(ordering_queue_length)/len(ordering_queue_length))
     print("mean of queue length in receiving food part")
