@@ -22,7 +22,7 @@ from operator import itemgetter
 #system parameters
 num_of_ordering_servers = 5
 num_of_receiving_servers = 2
-num_of _chairs_in_serving_food = 30
+num_of_chairs_in_serving_food = 30
 
 # an array for holding the information of all customers attended
 customers = []
@@ -441,11 +441,11 @@ def update(output_tracking_table, clock, current_event, state, step):
     if total_num_of_exited_customers != 0 :
         new_row["mean time for customer being in the system"] = total_time_customer_in_system/total_num_of_exited_customers
     else :
-         new_row["mean time for customer being in the system"] = "No one has completed the whole parts yet"
+         new_row["mean time for customer being in the system"] = "Null"
     if total_num_of_customers_received_food != 0:
         new_row["mean customer's waiting time in receiving food"] = total_time_customer_in_receiving_queue/total_num_of_customers_received_food
     else :
-        new_row["mean customer's waiting time in receiving food"] = "No one has recieved food yet"
+        new_row["mean customer's waiting time in receiving food"] = "Null"
     new_row["mean of queue length in serving food part"] = sum(serving_food_queue_length)/len(serving_food_queue_length)
     new_row["maximum of queue length in serving food part"] = max(serving_food_queue_length)
     new_row["mean performance of the servers in ordering"] = total_ordering_server_busy_time/(5*clock - ordering_servers_rest_time)
@@ -471,7 +471,7 @@ def expot_data_frame_into_excel_with_adjustment(output_tracking_table):
     # Add a header format
     #in the following link you can see the list of fg_color codes for 255 different color
     #https://plumbum.readthedocs.io/en/latest/colors.html
-    header_format = workbook.add_format({'bold': True,'text_wrap': False,'align': 'center', 'valign': 'vcenter', 'fg_color': '#A8A8A8','border': 1})
+    header_format = workbook.add_format({'bold': True,'text_wrap': True,'align': 'center', 'valign': 'vcenter', 'fg_color': '#A8A8A8','border': 1})
     # Write the column headers with the defined format
     for col_num, value in enumerate(output_tracking_table.columns.values):
         worksheet.write(0, col_num + 1, value, header_format)
