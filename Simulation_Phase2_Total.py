@@ -28,6 +28,8 @@ total_num_of_exited_customers = 0
 total_time_customer_in_receiving_queue = 0
 total_num_of_customers_received_food = 0
 serving_food_queue_length = []
+ordering_queue_length = []
+receiving_queue_length = []
 total_ordering_server_busy_time = 0
 total_receiving_server_busy_time = 0
 ordering_servers_rest_time = 0
@@ -408,7 +410,7 @@ def RSRF(future_event_list, state, clock):
 
 def update_Real_clock(Real_clock, clock):
     Real_clock["minute"] = clock % 60
-    Real_clock["hour"] = (clock - Real_clock["minute"]) / 60
+    Real_clock["hour"] = 10 + int(clock/60)
 
 def update(output_tracking_table, Real_clock, current_event, state, step):
 
@@ -436,6 +438,7 @@ def update(output_tracking_table, Real_clock, current_event, state, step):
     new_row["receiving_servers_rest_time"] = receiving_servers_rest_time
     #append row to the dataframe
     output_tracking_table = output_tracking_table.append(new_row, ignore_index=True)
+    return output_tracking_table
 
 
 
@@ -452,14 +455,16 @@ def simulation(simulation_time):
     future_event_list.append({'Event type': 'End of Simulation', 'Event time': simulation_time})
 
     while clock < simulation_time:
-        print(step)
         sorted_fel = sorted(future_event_list, key=lambda x: x['Event time'])
+        """
+        print(step)
         print("ordering_queue")
         for i in range(len(ordering_queue)):
             print(ordering_queue[i].index)
         print("receiving_queue")
         for i in range(len(receiving_queue)):
             print(receiving_queue[i].index)
+        """
         print("OSI" , state['Ordering_Server_Idle'])
         print("OSR" , state['Ordering_Server_Resting'])
         print("OSRB" , state['Ordering_Server_Rest_blocked'])
@@ -470,9 +475,11 @@ def simulation(simulation_time):
         print("RQ" , state['Receiving_queue'])
         print("SCI" , state['Serving_Chairs_Idle'])
         print(state['serving_queue'])
+        """"
         for i in range(len(customers)):
             print("customer" , customers[i].index)
             print(customers[i].entering_time_to_receiving_section)
+        """
         print(sorted_fel)
         step += 1
         current_event = sorted_fel[0]
@@ -509,11 +516,11 @@ def simulation(simulation_time):
 
             #updating the cumulative statistics
             serving_food_queue_length.append(state['serving_queue'])
-
-
-
+            ordering_queue_length.append(len(ordering_queue))
+            receiving_queue_length.append(len(receiving_queue))
+            
             #updating tracking table
-            update(output_tracking_table, Real_clock, current_event, state, step)
+            output_tracking_table = update(output_tracking_table, Real_clock, current_event, state, step)
             future_event_list.remove(current_event)
         else:
             break
@@ -535,12 +542,15 @@ def simulation(simulation_time):
     print(total_time_customer_in_system/total_num_of_exited_customers)
     print("mean customer's waiting time in receiving food")
     print(total_time_customer_in_receiving_queue/total_num_of_customers_received_food)
-    print("mean and maximum of queue length in serving food part")
+    print("mean of queue length in serving food part")
     print(sum(serving_food_queue_length)/len(serving_food_queue_length))
+    print("maximum of queue length in serving food part")
+    print(max(serving_food_queue_length))
     print("mean performance of the servers in ordering")
     print(total_ordering_server_busy_time/(5*simulation_time - ordering_servers_rest_time))
     print("mean performance of the servers in receiving")
     print(total_receiving_server_busy_time/(2*simulation_time - receiving_servers_rest_time))
+    
     print(output_tracking_table)
 
 
