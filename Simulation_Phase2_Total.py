@@ -176,7 +176,7 @@ def PCE(future_event_list, state, clock , customers):
     customer = Customer(customer_index, clock)
     customers.append(customer)
 
-    if state["Ordering_Server_Idle"] == 0:
+    if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
         state["Ordering_queue"] += 1
         global ordering_queue
         ordering_queue.append(customers[customer_index])
@@ -202,7 +202,7 @@ def CCE(future_event_list, state, clock, customers):
         #instantiating a new customer and appendign it to the list of customers
         customer = Customer(customer_index, clock)
         customers.append(customer)
-        if state["Ordering_Server_Idle"] == 0:
+        if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
             state["Ordering_queue"] += 1
             global ordering_queue
             ordering_queue.append(customers[customer_index])
@@ -227,7 +227,7 @@ def BE(future_event_list, state, clock, customers):
         # instantiating a new customer and appending it to the list of customers
         customer = Customer(customer_index, clock)
         customers.append(customer)
-        if state["Ordering_Server_Idle"] == 0:
+        if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
             state["Ordering_queue"] += 1
             global ordering_queue
             ordering_queue.append(customers[customer_index])
@@ -269,7 +269,7 @@ def OF(future_event_list, state, clock, customer_index):
 # Receiving Entrance
 # should be developed by Mohammad Sadegh
 def RE(future_event_list, state, clock, customers, customer_index):
-    if state["Receiving_Server_Idle"] == 0:
+    if state["Receiving_Server_Idle"] + num_of_receiving_servers == num_of_receiving_servers:
         state["Receiving_queue"] += 1
         global receiving_queue
         receiving_queue.append(customers[customer_index])
@@ -316,7 +316,7 @@ def RF(future_event_list, state, clock ,customers , customer_index):
 # Serving Entrance
 # should be developed by Mohammad Sadegh
 def SE(future_event_list, state, clock, customer_index):
-    if state["Serving_Chairs_Idle"] == 0:
+    if state["Serving_Chairs_Idle"] + num_of_chairs_in_serving_food == num_of_chairs_in_serving_food:
         state["serving_queue"] += 1
         global serving_queue
         serving_queue.append(customers[customer_index])
@@ -363,7 +363,7 @@ def E(clock , customers , customer_index):
 # Ordering Server Rest Start
 # should be developed by Mohammad Sadegh
 def OSRS(future_event_list, state, clock):
-    if state["Ordering_Server_Idle"] == 0:
+    if state["Ordering_Server_Idle"] + num_of_ordering_servers == num_of_ordering_servers:
         state["Ordering_Server_Rest_blocked"] += 1
     else:
         state["Ordering_Server_Resting"] += 1
@@ -395,7 +395,7 @@ def OSRF(future_event_list, state, clock ):
 # Receiving Server Rest Start
 # should be developed by Abolfazl
 def RSRS(future_event_list, state, clock):
-    if state['Receiving_Server_Idle'] == 0:
+    if state["Receiving_Server_Idle"] + num_of_receiving_servers == num_of_receiving_servers:
         state['Receiving_Server_Rest_blocked'] += 1
     else:
         state['Receiving_Server_Resting'] += 1
